@@ -31,11 +31,16 @@ namespace UI {
 
 class BaseDropdown;
 
-enum class ListselectLayout {
-	kPlain,     // Highlight the selected element
-	kDropdown,  // When the mouse moves, instantly select the element that the mouse hovers over
-	kShowCheck  // Show a green arrow in front of the selected element
+// This is a bitmask; use powers of 2.
+enum ListselectLayout {
+	kPlain = 0,     // Highlight the selected element
+	kDropdown = 1,  // When the mouse moves, instantly highlight the element that the mouse hovers over
+	kShowCheck = 2  // Show a green arrow in front of the selected element(s)
 };
+
+inline ListselectLayout operator|(ListselectLayout a, ListselectLayout b) {
+	return static_cast<ListselectLayout>(static_cast<int>(a) | static_cast<int>(b));
+}
 
 /**
  * This class defines a list-select box whose entries are defined by a name

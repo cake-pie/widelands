@@ -100,7 +100,7 @@ BaseListselect::BaseListselect(Panel* const parent,
 
 	scrollbar_.moved.connect([this](int32_t a) { set_scrollpos(a); });
 
-	if (selection_mode_ == ListselectLayout::kShowCheck) {
+	if ((selection_mode_ & ListselectLayout::kShowCheck) != 0) {
 		check_pic_ = g_image_cache->get("images/ui_basic/list_selected.png");
 		int pic_h = check_pic_->height();
 		if (pic_h > lineheight_) {
@@ -125,7 +125,7 @@ inline const UI::TableStyleInfo& BaseListselect::table_style() const {
 	return g_style_manager->table_style(panel_style_);
 }
 inline const UI::PanelStyleInfo* BaseListselect::background_style() const {
-	return selection_mode_ == ListselectLayout::kDropdown ?
+	return (selection_mode_ & ListselectLayout::kDropdown) != 0 ?
              g_style_manager->dropdown_style(panel_style_) :
              nullptr;
 }
@@ -274,7 +274,7 @@ void BaseListselect::select(uint32_t i, SnapSelectionToEnabled snap) {
 		return;
 	}
 
-	if (selection_mode_ == ListselectLayout::kShowCheck) {
+	if ((selection_mode_ & ListselectLayout::kShowCheck) != 0) {
 		if (selection_ != no_selection_index()) {
 			entry_records_[selection_]->checked_ = false;
 		}
@@ -335,7 +335,7 @@ int BaseListselect::get_lineheight_without_padding() const {
 
 int BaseListselect::get_lineheight() const {
 	return get_lineheight_without_padding() +
-	       (selection_mode_ == ListselectLayout::kDropdown ? 2 * kMargin : kMargin);
+	       ((selection_mode_ & ListselectLayout::kDropdown) != 0 ? 2 * kMargin : kMargin);
 }
 
 uint32_t BaseListselect::get_eff_w() const {
@@ -370,7 +370,7 @@ int BaseListselect::calculate_desired_width() {
 	}
 
 	const int picw = max_pic_width_ != 0 ? max_pic_width_ + 10 : 0;
-	const int chkw = selection_mode_ == ListselectLayout::kShowCheck ? check_pic_->width() + 10 : 0;
+	const int chkw = (selection_mode_ & ListselectLayout::kShowCheck) != 0 ? check_pic_->width() + 10 : 0;
 	const int old_width = get_w();
 	return txt_width + picw + chkw + 8 + old_width - get_eff_w();
 }
@@ -383,7 +383,7 @@ void BaseListselect::layout() {
 		scrollbar_.set_pos(Vector2i(get_w() - Scrollbar::kSize, 0));
 		scrollbar_.set_pagesize(get_h() - 2 * get_lineheight());
 		scrollbar_.set_singlestepsize(get_lineheight());
-		if (selection_mode_ == ListselectLayout::kDropdown) {
+		if ((selection_mode_ & ListselectLayout::kDropdown) != 0) {
 			scrollbar_.set_steps(steps + kMargin);
 		}
 	} else {
@@ -391,7 +391,7 @@ void BaseListselect::layout() {
 		scrollbar_.set_size(0, get_h());
 	}
 	// For dropdowns, autoincrease width
-	if (selection_mode_ == ListselectLayout::kDropdown) {
+	if ((selection_mode_ & ListselectLayout::kDropdown) != 0) {
 		const int new_width = calculate_desired_width();
 		if (new_width > get_w()) {
 			set_size(new_width, get_h());
@@ -405,7 +405,7 @@ Redraw the listselect box
 void BaseListselect::draw(RenderTarget& dst) {
 	// draw text lines
 	const int eff_h =
-	   selection_mode_ == ListselectLayout::kDropdown ? get_inner_h() - kMargin : get_inner_h();
+	   (selection_mode_ & ListselectLayout::kDropdown) != 0 ? get_inner_h() - kMargin : get_inner_h();
 	uint32_t idx = scrollpos_ / get_lineheight();
 	int y = 1 + idx * get_lineheight() - scrollpos_;
 
@@ -413,7 +413,7 @@ void BaseListselect::draw(RenderTarget& dst) {
 		draw_background(dst, *s);
 	}
 
-	if (selection_mode_ == ListselectLayout::kDropdown) {
+	if ((selection_mode_ & ListselectLayout::kDropdown) != 0) {
 		RGBAColor black(0, 0, 0, 255);
 		//  top edge
 		dst.brighten_rect(Recti(0, 0, get_w(), 2), BUTTON_EDGE_BRIGHT_FACTOR);
@@ -429,7 +429,7 @@ void BaseListselect::draw(RenderTarget& dst) {
 		dst.brighten_rect(Recti(0, 0, get_eff_w(), get_h()), ms_darken_value);
 	}
 
-	int chkw = selection_mode_ == ListselectLayout::kShowCheck ? check_pic_->width() + 10 : 0;
+	int chkw = (selection_mode_ & ListselectLayout::kShowCheck) != 0 ? check_pic_->width() + 10 : 0;
 	int picw = max_pic_width_ != 0 ? max_pic_width_ + 10 : 0;
 
 	while (idx < entry_records_.size()) {
@@ -448,10 +448,10 @@ void BaseListselect::draw(RenderTarget& dst) {
 
 		const int lineheight_unpadded = get_lineheight_without_padding();
 
-		Vector2i point(selection_mode_ == ListselectLayout::kDropdown ? 3 : 1, y);
+		Vector2i point((selection_mode_ & ListselectLayout::kDropdown) != 0 ? 3 : 1, y);
 		uint32_t maxw =
 		   get_eff_w() -
-		   (selection_mode_ == ListselectLayout::kDropdown ? scrollbar_.is_enabled() ? 4 : 5 : 2);
+		   ((selection_mode_ & ListselectLayout::kDropdown) != 0 ? scrollbar_.is_enabled() ? 4 : 5 : 2);
 
 		// Highlight the current selected entry
 		if (idx == selection_ && entry_records_.at(idx)->enable) {
@@ -594,7 +594,7 @@ bool BaseListselect::handle_mousepress(const uint8_t btn, int32_t /*x*/, int32_t
 
 		y = (y + scrollpos_) / get_lineheight();
 		if (y < 0 || static_cast<int32_t>(entry_records_.size()) <= y) {
-			if (selection_mode_ == ListselectLayout::kDropdown) {
+			if ((selection_mode_ & ListselectLayout::kDropdown) != 0) {
 				set_visible(false);
 				if (linked_dropdown_ != nullptr) {
 					linked_dropdown_->disable_textinput();
@@ -627,7 +627,7 @@ bool BaseListselect::handle_mousemove(
 		set_tooltip("");
 		return Panel::handle_mousemove(state, x, y, xdiff, ydiff);
 	}
-	if (selection_mode_ == ListselectLayout::kDropdown) {
+	if ((selection_mode_ & ListselectLayout::kDropdown) != 0) {
 		select(y);
 	}
 	set_tooltip(entry_records_.at(y)->tooltip);
