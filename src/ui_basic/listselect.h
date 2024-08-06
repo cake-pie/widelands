@@ -164,11 +164,12 @@ private:
 		const Align hotkey_alignment;
 		const unsigned indent;
 		const bool enable;
+		bool checked_{false};
 		std::shared_ptr<const UI::RenderedText> rendered_name;
 		std::shared_ptr<const UI::RenderedText> rendered_hotkey;
 	};
 
-	int max_pic_width_;
+	int max_pic_width_{0};
 	int widest_text_{0};
 	int widest_hotkey_{0};
 
