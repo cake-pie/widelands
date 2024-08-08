@@ -33,9 +33,11 @@ class BaseDropdown;
 
 // This is a bitmask; use powers of 2.
 enum ListselectLayout {
-	kPlain = 0,     // Highlight the selected element
-	kDropdown = 1,  // When the mouse moves, instantly highlight the element that the mouse hovers over
-	kShowCheck = 2  // Show a green arrow in front of the selected element(s)
+	kPlain = 0,      // Highlight the selected element
+	kShowCheck = 1,  // Additionally, show a green checkmark in front of the selected element
+	kDropdown = 2,   // When the mouse moves, instantly select (highlight) the element that the mouse hovers over
+	                 // if kShowCheck; the list behaves like a radio group; checkmark state is decoupled from the highlighted element
+	kMultiSelect = 4 // The checkmark for each element can be toggled independently; checkmark state is decoupled from the highlighted element
 };
 
 inline ListselectLayout operator|(ListselectLayout a, ListselectLayout b) {
@@ -60,6 +62,7 @@ struct BaseListselect : public Panel {
 	~BaseListselect() override;
 
 	Notifications::Signal<uint32_t> selected;
+	Notifications::Signal<uint32_t, bool> checkmark_changed;
 	Notifications::Signal<uint32_t> double_clicked;
 
 	void clear();
@@ -100,7 +103,10 @@ struct BaseListselect : public Panel {
 	}
 
 	enum class SnapSelectionToEnabled { kNo, kUp, kDown };
-	void select(uint32_t i, SnapSelectionToEnabled snap = SnapSelectionToEnabled::kNo);
+	void select(uint32_t i, SnapSelectionToEnabled snap = SnapSelectionToEnabled::kNo, bool affect_checkmarks = false);
+	void select(uint32_t i, bool affect_checkmarks) {
+		select(i, SnapSelectionToEnabled::kNo, affect_checkmarks);
+	}
 	bool has_selection() const;
 
 	uint32_t get_selected() const;
@@ -108,6 +114,11 @@ struct BaseListselect : public Panel {
 	const std::string& get_selected_name() const;
 	const std::string& get_selected_tooltip() const;
 	const Image* get_selected_image() const;
+
+	void clear_checked(bool notify = false);
+	bool is_checked(uint32_t entry) const;
+	bool set_checked(uint32_t entry, bool newstate, bool notify = false);
+	bool toggle_checked(uint32_t entry, bool notify = false);
 
 	///  Return the total height (text + spacing) occupied by a single line.
 	int get_lineheight() const;
@@ -143,6 +154,11 @@ struct BaseListselect : public Panel {
 	void set_linked_dropdown(UI::BaseDropdown* d) {
 		assert((selection_mode_ & ListselectLayout::kDropdown) != 0);
 		linked_dropdown_ = d;
+	}
+
+protected:
+	virtual void emit_checkmark_changed(uint32_t entry, bool newstate) const {
+		checkmark_changed(entry, newstate);
 	}
 
 private:
@@ -211,6 +227,8 @@ template <typename Entry> struct Listselect : public BaseListselect {
 	   : BaseListselect(parent, name, x, y, w, h, style, selection_mode) {
 	}
 
+	Notifications::Signal<Entry, bool> checkmark_changed;
+
 	void add(const std::string& name,
 	         Entry value,
 	         const Image* pic = nullptr,
@@ -232,7 +250,38 @@ template <typename Entry> struct Listselect : public BaseListselect {
 		return entry_cache_[BaseListselect::get_selected()];
 	}
 
-private:
+	bool is_checked(Entry entry) const {
+		for (uint32_t i = 0; i < entry_cache_.size(); ++i) {
+			if (entry == entry_cache_[i]) {
+				return BaseListselect::is_checked(i);
+			}
+		}
+		return false;
+	}
+
+	bool set_checked(Entry entry, bool newstate, bool notify = false) {
+		for (uint32_t i = 0; i < entry_cache_.size(); ++i) {
+			if (entry == entry_cache_[i]) {
+				return BaseListselect::set_checked(i, newstate, notify);
+			}
+		}
+		return false;
+	}
+
+	bool toggle_checked(Entry entry, bool notify = false) {
+		for (uint32_t i = 0; i < entry_cache_.size(); ++i) {
+			if (entry == entry_cache_[i]) {
+				return BaseListselect::toggle_checked(i, notify);
+			}
+		}
+		return false;
+	}
+
+protected:
+	void emit_checkmark_changed(uint32_t base_entry, bool newstate) const override {
+		checkmark_changed(entry_cache_[base_entry], newstate);
+	}
+
 	std::deque<Entry> entry_cache_;
 };
 
@@ -257,6 +306,8 @@ template <typename Entry> struct Listselect<Entry&> : public Listselect<Entry*> 
 	   : Base(parent, name, x, y, w, h, style, selection_mode) {
 	}
 
+	Notifications::Signal<Entry&, bool> checkmark_changed;
+
 	void add(const std::string& name,
 	         Entry& value,
 	         const Image* pic = nullptr,
@@ -274,6 +325,23 @@ template <typename Entry> struct Listselect<Entry&> : public Listselect<Entry*> 
 
 	Entry& get_selected() const {
 		return *Base::get_selected();
+	}
+
+	bool is_checked(Entry& entry) const {
+		return Base::is_checked(&entry);
+	}
+
+	bool set_checked(Entry& entry, bool newstate, bool notify = false) {
+		return Base::set_checked(&entry, newstate, notify);
+	}
+
+	bool toggle_checked(Entry& entry, bool notify = false) {
+		return Base::toggle_checked(&entry, notify);
+	}
+
+protected:
+	void emit_checkmark_changed(uint32_t base_entry, bool newstate) const override {
+		checkmark_changed(*Base::entry_cache_[base_entry], newstate);
 	}
 };
 }  // namespace UI
