@@ -45,6 +45,10 @@ const DropdownType DropdownType::kTextualNarrow = DropdownType(DropdownType::Dis
 const DropdownType DropdownType::kPictorial = DropdownType(DropdownType::Display::kShowIcon, DropdownType::Format::kButtonOnly);
 const DropdownType DropdownType::kTextualMenu = DropdownType(DropdownType::Display::kShowText, DropdownType::Format::kMenu);
 const DropdownType DropdownType::kPictorialMenu = DropdownType(DropdownType::Display::kShowIcon, DropdownType::Format::kMenu);
+const DropdownType DropdownType::kTextualRadioGrp = DropdownType(DropdownType::Display::kShowText, DropdownType::Format::kCheckmark);
+const DropdownType DropdownType::kPictorialRadioGrp = DropdownType(DropdownType::Display::kShowIcon, DropdownType::Format::kCheckmark);
+const DropdownType DropdownType::kTextualToggles = DropdownType(DropdownType::Display::kShowText, DropdownType::Format::kMultiSelect);
+const DropdownType DropdownType::kPictorialToggles = DropdownType(DropdownType::Display::kShowIcon, DropdownType::Format::kMultiSelect);
 
 // Dropdowns hook into parent elements to be notified of layouting changes. We need to keep track of
 // whether a dropdown actually still exists when notified to avoid heap-use-after-free's.
@@ -131,8 +135,15 @@ BaseDropdown::BaseDropdown(UI::Panel* parent,
 	while (list_parent->get_parent() != nullptr) {
 		list_parent = list_parent->get_parent();
 	}
+	ListselectLayout lsl = ListselectLayout::kDropdown;
+	if (type_.format >= DropdownType::Format::kCheckmark) {
+		lsl = lsl | ListselectLayout::kShowCheck;
+	}
+	if (type_.format == DropdownType::Format::kMultiSelect) {
+		lsl = lsl | ListselectLayout::kMultiSelect;
+	}
 	list_ = new UI::Listselect<uintptr_t>(
-	   list_parent, "list", 0, 0, w, 0, style, ListselectLayout::kDropdown);
+	   list_parent, "list", 0, 0, w, 0, style, lsl);
 	list_->set_linked_dropdown(this);
 
 	list_->set_visible(false);
@@ -320,7 +331,7 @@ bool BaseDropdown::has_selection() const {
 }
 
 void BaseDropdown::clear_selection() {
-	list_->select(BaseListselect::no_selection_index());
+	list_->select(BaseListselect::no_selection_index(), true);
 	update();
 }
 
@@ -331,9 +342,33 @@ uint32_t BaseDropdown::get_selected() const {
 
 void BaseDropdown::select(uint32_t entry) {
 	assert(entry < list_->size());
-	list_->select(entry);
+	list_->select(entry, true);
 	current_selection_ = list_->selection_index();
 	update();
+}
+
+void BaseDropdown::connect_checkmark_changed(std::function<void(uint32_t, bool)> callback, Notifications::SubscriberPosition pos) const {
+	list_->checkmark_changed.connect(callback, pos);
+}
+
+void BaseDropdown::clear_checked(bool notify) {
+	assert(type_.format == DropdownType::Format::kMultiSelect);
+	list_->clear_checked(notify);
+}
+
+bool BaseDropdown::is_checked(uint32_t entry) const {
+	assert(type_.format == DropdownType::Format::kMultiSelect);
+	return list_->is_checked(entry);
+}
+
+bool BaseDropdown::set_checked(uint32_t entry, bool newstate, bool notify) {
+	assert(type_.format == DropdownType::Format::kMultiSelect);
+	return list_->set_checked(entry, newstate, notify);
+}
+
+bool BaseDropdown::toggle_checked(uint32_t entry, bool notify) {
+	assert(type_.format == DropdownType::Format::kMultiSelect);
+	return list_->toggle_checked(entry, notify);
 }
 
 void BaseDropdown::set_label(const std::string& text) {
@@ -455,7 +490,7 @@ void BaseDropdown::toggle() {
 
 void BaseDropdown::set_list_visibility(bool open, bool move_mouse) {
 	if (!open) {
-		list_->select(current_selection_);
+		list_->select(current_selection_, false);
 		clear_filter();
 	}
 	if (!is_enabled_) {
@@ -475,7 +510,8 @@ void BaseDropdown::set_list_visibility(bool open, bool move_mouse) {
 		}
 
 		if (type_.format >= DropdownType::Format::kMenu && !has_selection() && !list_->empty()) {
-			select(0);
+			list_->select(0, false);
+			current_selection_ = 0;
 		}
 	} else {
 		disable_textinput();
@@ -509,6 +545,9 @@ bool BaseDropdown::handle_key(bool down, SDL_Keysym code) {
 		switch (code.sym) {
 		case SDLK_RETURN:
 			if (list_->is_visible()) {
+				if (type_.format >= DropdownType::Format::kCheckmark) {
+					return list_->handle_key(down, code);
+				}
 				set_value();
 				close(); // close if not already done so by set_value()
 			} else {
