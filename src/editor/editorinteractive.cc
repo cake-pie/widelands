@@ -128,10 +128,10 @@ EditorInteractive::EditorInteractive(Widelands::EditorGameBase& e)
                    /** TRANSLATORS: Title for a menu button in the editor. This menu will show/hide
                       building spaces, animals, immovables, resources */
                    _("Show / Hide"),
-                   UI::DropdownType::kPictorialMenu,
+                   UI::DropdownType::kPictorialToggles,
                    UI::PanelStyle::kWui,
                    UI::ButtonStyle::kWuiPrimary,
-                   [this](ShowHideEntry t) { showhide_menu_selected(t); }),
+                   [this](ShowHideEntry t) { showhidemenu_.toggle_checked(t, true); }),
 
      tools_(new Tools(*this, e.map())),
      history_(nullptr)  // history needs the undo/redo buttons
@@ -461,55 +461,56 @@ void EditorInteractive::add_showhide_menu() {
 }
 
 void EditorInteractive::rebuild_showhide_menu() {
-	const ShowHideEntry last_selection =
-	   showhidemenu_.has_selection() ? showhidemenu_.get_selected() : ShowHideEntry::kBuildingSpaces;
-
 	showhidemenu_.clear();
 
+	bool state = buildhelp();
 	/** TRANSLATORS: An entry in the editor's show/hide menu to toggle whether building spaces are
 	 * shown */
-	showhidemenu_.add(buildhelp() ? _("Hide Building Spaces") : _("Show Building Spaces"),
+	showhidemenu_.add(state ? _("Hide Building Spaces") : _("Show Building Spaces"),
 	                  ShowHideEntry::kBuildingSpaces,
 	                  g_image_cache->get("images/wui/menus/toggle_buildhelp.png"), false, "",
-	                  shortcut_string_for(KeyboardShortcut::kCommonBuildhelp, false));
+	                  shortcut_string_for(KeyboardShortcut::kCommonBuildhelp, false), state);
 
+	state = get_display_flag(dfShowMaximumBuildhelp);
 	/** TRANSLATORS: An entry in the editor's show/hide menu to toggle whether to show maximum
 	 * building spaces that will be available if all immovables (trees, rocks, etc.) are removed */
-	showhidemenu_.add(get_display_flag(dfShowMaximumBuildhelp) ? _("Hide Maximum Building Spaces") :
-                                                                _("Show Maximum Building Spaces"),
+	showhidemenu_.add(state ? _("Hide Maximum Building Spaces") : _("Show Maximum Building Spaces"),
 	                  ShowHideEntry::kMaximumBuildingSpaces,
 	                  g_image_cache->get("images/wui/menus/toggle_maxbuild.png"), false,
 	                  _("Toggle whether to show maximum building spaces that will be available if "
 	                    "all immovables (trees, rocks, etc.) are removed"),
-	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideMaximumBuildhelp, false));
+	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideMaximumBuildhelp, false),
+	                  state);
 
+	state = get_display_flag(dfShowGrid);
 	/** TRANSLATORS: An entry in the editor's show/hide menu to toggle whether the map grid is shown
 	 */
-	showhidemenu_.add(get_display_flag(dfShowGrid) ? _("Hide Grid") : _("Show Grid"),
+	showhidemenu_.add(state ? _("Hide Grid") : _("Show Grid"),
 	                  ShowHideEntry::kGrid,
 	                  g_image_cache->get("images/wui/menus/menu_toggle_grid.png"), false, "",
-	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideGrid, false));
+	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideGrid, false), state);
 
-	showhidemenu_.add(
-	   /** TRANSLATORS: An entry in the editor's show/hide menu to toggle whether immovables
-	    *  (trees, rocks etc.) are shown */
-	   get_display_flag(dfShowImmovables) ? _("Hide Immovables") : _("Show Immovables"),
-	   ShowHideEntry::kImmovables, g_image_cache->get("images/wui/menus/toggle_immovables.png"),
-	   false, "", shortcut_string_for(KeyboardShortcut::kEditorShowhideImmovables, false));
+	state = get_display_flag(dfShowImmovables);
+	/** TRANSLATORS: An entry in the editor's show/hide menu to toggle whether immovables
+	 *  (trees, rocks etc.) are shown */
+	showhidemenu_.add(state ? _("Hide Immovables") : _("Show Immovables"),
+	                  ShowHideEntry::kImmovables,
+	                  g_image_cache->get("images/wui/menus/toggle_immovables.png"), false, "",
+	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideImmovables, false), state);
 
+	state = get_display_flag(dfShowBobs);
 	/** TRANSLATORS: An entry in the editor's show/hide menu to toggle whether animals are shown */
-	showhidemenu_.add(get_display_flag(dfShowBobs) ? _("Hide Animals") : _("Show Animals"),
+	showhidemenu_.add(state ? _("Hide Animals") : _("Show Animals"),
 	                  ShowHideEntry::kAnimals,
 	                  g_image_cache->get("images/wui/menus/toggle_bobs.png"), false, "",
-	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideCritters, false));
+	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideCritters, false), state);
 
+	state = get_display_flag(dfShowResources);
 	/** TRANSLATORS: An entry in the editor's show/hide menu to toggle whether resources are shown */
-	showhidemenu_.add(get_display_flag(dfShowResources) ? _("Hide Resources") : _("Show Resources"),
+	showhidemenu_.add(state ? _("Hide Resources") : _("Show Resources"),
 	                  ShowHideEntry::kResources,
 	                  g_image_cache->get("images/wui/menus/toggle_resources.png"), false, "",
-	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideResources, false));
-
-	showhidemenu_.select(last_selection);
+	                  shortcut_string_for(KeyboardShortcut::kEditorShowhideResources, false), state);
 }
 
 void EditorInteractive::showhide_menu_selected(ShowHideEntry entry) {
