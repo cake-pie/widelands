@@ -59,13 +59,13 @@ struct BaseListselect : public Panel {
 	               uint32_t h,
 	               PanelStyle style,
 	               ListselectLayout selection_mode = ListselectLayout::kPlain);
-	~BaseListselect() override;
+	virtual ~BaseListselect() override;
 
 	Notifications::Signal<uint32_t> selected;
 	Notifications::Signal<uint32_t, bool> checkmark_changed;
 	Notifications::Signal<uint32_t> double_clicked;
 
-	void clear();
+	virtual void clear();
 	void sort(uint32_t Begin = 0, uint32_t End = std::numeric_limits<uint32_t>::max());
 	/**
 	 * Text conventions: Title Case for the 'name', Sentence case for the 'tooltip_text'
@@ -226,8 +226,16 @@ template <typename Entry> struct Listselect : public BaseListselect {
 	           ListselectLayout selection_mode = ListselectLayout::kPlain)
 	   : BaseListselect(parent, name, x, y, w, h, style, selection_mode) {
 	}
+	~Listselect() override {
+		entry_cache_.clear();
+	}
 
 	Notifications::Signal<Entry, bool> checkmark_changed;
+
+	void clear() override {
+		entry_cache_.clear();
+		BaseListselect::clear();
+	}
 
 	void add(const std::string& name,
 	         Entry value,
