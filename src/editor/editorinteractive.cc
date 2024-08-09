@@ -458,6 +458,12 @@ void EditorInteractive::add_showhide_menu() {
 	rebuild_showhide_menu();
 
 	showhidemenu_.selected.connect([this] { showhide_menu_selected(showhidemenu_.get_selected()); });
+
+	// TODO(cake-pie): cleanup debug logging
+	showhidemenu_.checkmark_changed.connect(
+	    [this](ShowHideEntry entry, bool checked) {
+		log_info("chmk chg %i : %s \n", static_cast<int>(entry), checked ? "T" : "F");
+	    });
 }
 
 void EditorInteractive::rebuild_showhide_menu() {

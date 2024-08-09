@@ -716,6 +716,7 @@ bool BaseListselect::handle_key(bool const down, SDL_Keysym const code) {
 			}
 			return UI::Panel::handle_key(down, code);
 		case SDLK_RETURN:
+			log_info("BLS::handle_key RETURN on %s of lsl %i", get_name().c_str(), static_cast<int>(selection_mode_));
 			if ((code.mod & KMOD_CTRL) == 0 && has_selection() &&
 			   (selection_mode_ & ListselectLayout::kShowCheck) != 0 &&
 			   (selection_mode_ != ListselectLayout::kShowCheck)) { // not required in this case

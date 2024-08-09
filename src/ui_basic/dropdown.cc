@@ -544,6 +544,7 @@ bool BaseDropdown::handle_key(bool down, SDL_Keysym code) {
 	if (down && (code.mod & KMOD_CTRL) == 0) {
 		switch (code.sym) {
 		case SDLK_RETURN:
+			log_info("BDD::handle_key RETURN on %s", get_name().c_str());
 			if (list_->is_visible()) {
 				if (type_.format >= DropdownType::Format::kCheckmark) {
 					return list_->handle_key(down, code);
@@ -555,6 +556,7 @@ bool BaseDropdown::handle_key(bool down, SDL_Keysym code) {
 			}
 			return true;
 		case SDLK_ESCAPE:
+			log_info("BDD::handle_key ESCAPE on %s", get_name().c_str());
 			if (is_expanded()) {
 				if (is_filtered()) {
 					clear_filter();

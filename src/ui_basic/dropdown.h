@@ -423,7 +423,12 @@ public:
 		BaseDropdown::add(name, size(), pic, select_this, tooltip_text, hotkey);
 		if (checked.has_value()) {
 			assert(type_.format == DropdownType::Format::kMultiSelect);
-			BaseDropdown::set_checked(size()-1, *checked, false);
+			bool foo = BaseDropdown::set_checked(size()-1, *checked, false);
+
+			// TODO(cake-pie): cleanup debug logging
+			log_info("dd.add.chk [%i] %s : %s -> set %s \n", size()-1, name.c_str(),
+			    checked.has_value() ? (*checked ? "T" : "F") : "X",
+			    foo ? "success":"fail");
 		}
 	}
 
