@@ -304,6 +304,7 @@ private:
 	bool autoexpand_display_button_{false};
 };
 
+// TODO(cake-pie): specialize for Entry being numeric or enum type
 /// A dropdown menu that lets the user select a value of the datatype 'Entry'.
 template <typename Entry> class Dropdown : public BaseDropdown {
 public:

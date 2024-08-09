@@ -195,7 +195,7 @@ private:
 	int widest_text_{0};
 	int widest_hotkey_{0};
 
-	std::deque<EntryRecord*> entry_records_;
+	std::deque<EntryRecord*> entry_records_; // TODO(cake-pie): does this really need to be deque?
 	Scrollbar scrollbar_;
 	uint32_t scrollpos_{0U};  //  in pixels
 	uint32_t selection_;
@@ -215,6 +215,7 @@ private:
 	UI::BaseDropdown* linked_dropdown_{nullptr};
 };
 
+// TODO(cake-pie): specialize for Entry being numeric or enum type
 template <typename Entry> struct Listselect : public BaseListselect {
 	Listselect(Panel* parent,
 	           const std::string& name,
