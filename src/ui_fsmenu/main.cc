@@ -53,6 +53,7 @@
 #include "ui_fsmenu/options.h"
 #include "ui_fsmenu/random_game.h"
 #include "ui_fsmenu/scenario_select.h"
+#include "ui_fsmenu/testlistselect.h"
 #include "wlapplication.h"
 #include "wlapplication_options.h"
 #include "wui/maptable.h"
@@ -249,7 +250,7 @@ MainMenu::MainMenu(const bool skip_init)
 	}
 
 	r_login_.open_window = [this]() { new LoginBox(*this, r_login_); };
-	r_about_.open_window = [this]() { new About(*this, r_about_); };
+	r_about_.open_window = [this]() { new TestListselect(*this, r_about_); };
 	r_addons_.open_window = [this]() { new AddOnsUI::AddOnsCtrl(*this, r_about_); };
 
 	focus();
