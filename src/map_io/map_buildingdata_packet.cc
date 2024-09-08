@@ -830,10 +830,19 @@ void MapBuildingdataPacket::read_productionsite(ProductionSite& productionsite,
 				if (!game.descriptions().ware_exists(widx)) {
 					delete wq;
 				} else {
-					// Savegame compatibility: check whether queue had size changed
+					// Savegame compatibility: check whether queue had size changed,
+					// or was removed altogether
 					auto it = std::find_if(curr_wares.begin(), curr_wares.end(),
 					                       [widx] (auto e) { return e.first == widx; });
-					if (it != curr_wares.end()) {
+					if (it == curr_wares.end()) {
+						if (wq->get_filled() == 0u) {
+							wq->cleanup();
+							delete wq;
+							continue;
+						}
+						wq->set_max_fill(0u);
+						wq->set_max_size(wq->get_filled());
+					} else {
 						Quantity new_size = it->second;
 						Quantity old_size = wq->get_max_size();
 						if (new_size > old_size) {
@@ -841,6 +850,9 @@ void MapBuildingdataPacket::read_productionsite(ProductionSite& productionsite,
 							if (wq->get_max_fill() == old_size) {
 								wq->set_max_fill(new_size);
 							}
+						} else if (new_size < old_size) {
+							wq->set_max_fill(std::min(wq->get_max_fill(), new_size));
+							wq->set_max_size(std::max(wq->get_filled(), new_size));
 						}
 					}
 					productionsite.input_queues_.push_back(wq);
