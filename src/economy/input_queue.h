@@ -20,6 +20,7 @@
 #define WL_ECONOMY_INPUT_QUEUE_H
 
 #include <memory>
+#include <optional>
 
 #include "logic/map_objects/immovable.h"
 #include "logic/map_objects/tribes/wareworker.h"
@@ -151,6 +152,13 @@ public:
 	virtual void set_max_fill(Quantity size);
 
 	/**
+	 * For savegame compatibility purposes. Reduce the size of the queue to this value
+	 * without wares vanishing into thin air, by using max_fill_ to eject wares.
+	 * @param size The new maximum size.
+	 */
+	void set_compat_size(Quantity size);
+
+	/**
 	 * Change fill status of the queue. This creates or removes wares as required.
 	 * Note that the wares are created out of thin air and respectively are removed without
 	 * dropping them on the street.
@@ -264,6 +272,8 @@ protected:
 	Quantity max_size_;
 	/// The amount that should be ideally in this queue.
 	Quantity max_fill_;
+	/// Savegame compatibility: reduce max_size_ to this value by ejecting wares.
+	std::optional<Quantity> compat_size_{};
 
 	/// Whether wares or workers are stored in the queue.
 	const WareWorker type_;

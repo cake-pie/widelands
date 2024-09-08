@@ -49,6 +49,15 @@ void InputQueue::update() {
 	assert(max_fill_ <= max_size_);
 	assert(index_ != INVALID_INDEX);
 
+	if (compat_size_.has_value()) {
+		max_fill_ = std::min(max_fill_, *compat_size_);
+		max_size_ = std::max(get_filled(), *compat_size_);
+		if (max_size_ == *compat_size_) {
+			compat_size_.reset();
+			// size zero queues will be removed upon subsequent save-and-load
+		}
+	}
+
 	if (get_filled() < max_fill_) {
 		if (!request_) {
 			request_.reset(new Request(owner_, index_, InputQueue::request_callback, type_));
@@ -109,6 +118,13 @@ void InputQueue::set_max_fill(Quantity size) {
 	}
 
 	max_fill_ = size;
+
+	update();
+}
+
+void InputQueue::set_compat_size(Quantity size) {
+	assert(size < max_size_);
+	compat_size_ = size;
 
 	update();
 }
