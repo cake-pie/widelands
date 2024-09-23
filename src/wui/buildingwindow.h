@@ -103,7 +103,7 @@ protected:
 	void hide_workarea(bool configure_button);
 	void toggle_workarea();
 	void configure_workarea_button();
-	void act_start_stop();
+	void act_start_stop(Widelands::Building::OperationalStatus opstat);
 	void act_produce_infinite();
 	void act_start_or_cancel_expedition();
 	void act_enhance(Widelands::DescriptionIndex, bool is_csite);
@@ -130,6 +130,9 @@ private:
 	// For ports only.
 	void update_expedition_button(bool expedition_was_canceled);
 
+	// For productionsites
+	void update_opstat_dd_tooltip(Widelands::Building::OperationalStatus opstat);
+
 	InteractiveBase* parent_;
 
 	// The building that this window belongs to
@@ -148,6 +151,7 @@ private:
 	UI::TabPanel* tabs_;
 
 	UI::Box* capsbuttons_;  ///< \ref UI::Box that contains capabilities buttons
+	UI::Dropdown<Widelands::Building::OperationalStatus>* opstat_dd_{nullptr};
 	UI::Button* toggle_workarea_;
 
 	//  capabilities that were last used in setting up the caps panel

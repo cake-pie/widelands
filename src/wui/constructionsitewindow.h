@@ -102,7 +102,7 @@ private:
 	ConstructionSoldierCapacityBox* cs_soldier_capacity_{nullptr};
 	std::vector<InputQueueDisplay*> cs_ware_queues_;
 	std::vector<InputQueueDisplay*> cs_worker_queues_;
-	UI::Checkbox* cs_stopped_{nullptr};
+	UI::Dropdown<Widelands::Building::OperationalStatus>* cs_opstat_{nullptr};
 	FakeWaresDisplay* cs_warehouse_wares_{nullptr};
 	FakeWaresDisplay* cs_warehouse_workers_{nullptr};
 	void change_policy(Widelands::WareWorker, Widelands::StockPolicy);
