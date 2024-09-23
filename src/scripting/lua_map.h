@@ -1107,6 +1107,8 @@ public:
 	/*
 	 * Lua Methods
 	 */
+	int get_operational_status(lua_State* L);
+	int set_operational_status(lua_State* L);
 	int get_priority(lua_State*);
 	int set_priority(lua_State*);
 	int get_desired_fill(lua_State*);
@@ -1238,6 +1240,8 @@ public:
 	int get_workers(lua_State* L);
 	int set_inputs(lua_State* L);
 	int set_workers(lua_State* L);
+	int get_operational_status(lua_State* L);
+	int set_operational_status(lua_State* L);
 	int toggle_start_stop(lua_State* L);
 	int get_priority(lua_State*);
 	int set_priority(lua_State*);
