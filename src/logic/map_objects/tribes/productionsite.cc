@@ -322,9 +322,23 @@ void ProductionSite::postload(EditorGameBase& egbase) {
 }
 
 /**
- * Display whether we're occupied.
+ * Display whether we're stopped / occupied.
  */
 void ProductionSite::update_statistics_string(std::string* s) {
+	switch (operational_status_) {
+	    case Building::OperationalStatus::kStandby:
+		*s = StyleManager::color_tag(
+		   _("(on standby)"), g_style_manager->building_statistics_style().neutral_color());
+		return;
+	    case Building::OperationalStatus::kMothballed:
+		*s = StyleManager::color_tag(
+		   _("(mothballed)"), g_style_manager->building_statistics_style().neutral_color());
+		return;
+	    case Building::OperationalStatus::kOperational:
+		// intentionally blank
+		break;
+	}
+
 	uint32_t nr_xp_requests = 0;
 	uint32_t nr_requests = 0;
 	uint32_t nr_coming = 0;
@@ -392,19 +406,6 @@ void ProductionSite::update_statistics_string(std::string* s) {
 		return;
 	}
 
-	switch (operational_status_) {
-	    case Building::OperationalStatus::kStandby:
-		*s = StyleManager::color_tag(
-		   _("(on standby)"), g_style_manager->building_statistics_style().neutral_color());
-		return;
-	    case Building::OperationalStatus::kMothballed:
-		*s = StyleManager::color_tag(
-		   _("(mothballed)"), g_style_manager->building_statistics_style().neutral_color());
-		return;
-	    case Building::OperationalStatus::kOperational:
-		// intentionally blank
-		break;
-	}
 	*s = statistics_string_on_changed_statistics_;
 }
 
