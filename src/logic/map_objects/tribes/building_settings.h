@@ -23,6 +23,7 @@
 #include <string>
 
 #include "economy/ware_priority.h"
+#include "logic/map_objects/tribes/building.h"
 #include "logic/widelands.h"
 
 class FileRead;
@@ -74,7 +75,7 @@ struct ProductionsiteSettings : public BuildingSettings {
 	};
 	std::map<DescriptionIndex, InputQueueSetting> ware_queues;
 	std::map<DescriptionIndex, InputQueueSetting> worker_queues;
-	bool stopped{false};
+	Building::OperationalStatus operational_status{Building::OperationalStatus::kOperational};
 };
 
 struct MilitarysiteSettings : public BuildingSettings {

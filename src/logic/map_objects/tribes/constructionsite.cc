@@ -341,7 +341,7 @@ void ConstructionSite::cleanup(EditorGameBase& egbase) {
 						b.mutable_soldier_control()->set_soldier_capacity(ts->desired_capacity);
 					}
 				}
-				dynamic_cast<ProductionSite&>(b).set_stopped(ps->stopped);
+				dynamic_cast<ProductionSite&>(b).set_operational_status(ps->operational_status);
 			} else if (upcast(MilitarysiteSettings, ms, settings_.get())) {
 				assert(b.soldier_control());
 				assert(ms->desired_capacity >= b.soldier_control()->min_soldier_capacity());
@@ -472,7 +472,7 @@ void ConstructionSite::enhance(const EditorGameBase& egbase) {
 		assert(ts);
 		TrainingsiteSettings* new_settings = new TrainingsiteSettings(*td, owner().tribe());
 		settings_.reset(new_settings);
-		new_settings->stopped = ts->stopped;
+		new_settings->operational_status = ts->operational_status;
 		for (const auto& pair_old : ts->ware_queues) {
 			for (auto& pair_new : new_settings->ware_queues) {
 				if (pair_new.first == pair_old.first) {
@@ -502,7 +502,7 @@ void ConstructionSite::enhance(const EditorGameBase& egbase) {
 		assert(ps);
 		ProductionsiteSettings* new_settings = new ProductionsiteSettings(*pd, owner().tribe());
 		settings_.reset(new_settings);
-		new_settings->stopped = ps->stopped;
+		new_settings->operational_status = ps->operational_status;
 		for (const auto& pair_old : ps->ware_queues) {
 			for (auto& pair_new : new_settings->ware_queues) {
 				if (pair_new.first == pair_old.first) {
