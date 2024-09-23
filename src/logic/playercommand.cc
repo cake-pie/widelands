@@ -577,7 +577,16 @@ void CmdStartStopBuilding::execute(Game& game) {
 	MapObject* mo = game.objects().get_object(serial_);
 	if (upcast(ConstructionSite, cs, mo)) {
 		if (upcast(ProductionsiteSettings, s, cs->get_settings())) {
-			s->operational_status = opstat_;
+			if (opstat_ == static_cast<Building::OperationalStatus>(UINT8_MAX)) {
+				// savegame compatibility for v1.2
+				if (s->operational_status == Building::OperationalStatus::kOperational) {
+					s->operational_status = Building::OperationalStatus::kStandby;
+				} else {
+					s->operational_status = Building::OperationalStatus::kOperational;
+				}
+			} else {
+				s->operational_status = opstat_;
+			}
 		}
 	} else if (upcast(Building, building, mo)) {
 		game.get_player(sender())->start_stop_building(*building, opstat_);
@@ -602,6 +611,11 @@ void CmdStartStopBuilding::read(FileRead& fr, EditorGameBase& egbase, MapObjectL
 			PlayerCommand::read(fr, egbase, mol);
 			serial_ = get_object_serial_or_zero<Building>(fr.unsigned_32(), mol);
 			opstat_ = static_cast<Building::OperationalStatus>(fr.unsigned_8());
+		} else if (packet_version == 1) {
+			// savegame compatibility for v1.2
+			PlayerCommand::read(fr, egbase, mol);
+			serial_ = get_object_serial_or_zero<Building>(fr.unsigned_32(), mol);
+			opstat_ = static_cast<Building::OperationalStatus>(UINT8_MAX);
 		} else {
 			throw UnhandledVersionError(
 			   "CmdStartStopBuilding", packet_version, kCurrentPacketVersionCmdStartStopBuilding);

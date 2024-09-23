@@ -254,6 +254,7 @@ public:
 	};
 
 	// Note: widely cast to/from underlying uint8_t for saveload / serialization
+	// UINT8_MAX used as magic number in savegame compatibility for v1.2
 	enum class OperationalStatus : uint8_t { kOperational, kStandby, kMothballed };
 
 	enum class InfoStringFormat { kCensus, kStatistics, kTooltip };

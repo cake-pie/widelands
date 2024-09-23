@@ -239,7 +239,8 @@ void ProductionsiteSettings::read(const Game& game, FileRead& fr) {
 	BuildingSettings::read(game, fr);
 	try {
 		const uint8_t packet_version = fr.unsigned_8();
-		if (packet_version == kCurrentPacketVersionProductionsite) {
+		if (packet_version == kCurrentPacketVersionProductionsite ||
+		    packet_version == 2) {  // savegame compatibility for v1.2 - no special handling needed
 			operational_status = static_cast<Building::OperationalStatus>(fr.unsigned_8());
 			const uint32_t nr_wares = fr.unsigned_32();
 			const uint32_t nr_workers = fr.unsigned_32();
