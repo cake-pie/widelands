@@ -277,7 +277,7 @@ public:
 	void send_player_build_road(int32_t, Path&);
 	void send_player_build_waterway(int32_t, Path&);
 	void send_player_flagaction(Flag&, FlagJob::Type);
-	void send_player_start_stop_building(Building&);
+	void send_player_start_stop_building(Building&, Building::OperationalStatus);
 	void send_player_toggle_infinite_production(Building&);
 	void send_player_set_soldier_preference(MapObject&, SoldierPreference preference);
 	void send_player_start_or_cancel_expedition(Building&);
