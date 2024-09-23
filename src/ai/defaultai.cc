@@ -4584,7 +4584,7 @@ bool DefaultAI::check_productionsites(const Time& gametime) {
 
 		// starting the site
 		if (site.site->is_stopped() && tmp_score >= 0) {
-			game().send_player_start_stop_building(*site.site);
+			game().send_player_start_stop_building(*site.site, Widelands::Building::OperationalStatus::kOperational);
 			for (const auto& queue : site.site->inputqueues()) {
 				game().send_player_set_input_max_fill(
 				   *site.site, queue->get_index(), queue->get_type(), 4);
@@ -4592,7 +4592,7 @@ bool DefaultAI::check_productionsites(const Time& gametime) {
 		}
 		// stopping the site
 		if (!site.site->is_stopped() && tmp_score < 0) {
-			game().send_player_start_stop_building(*site.site);
+			game().send_player_start_stop_building(*site.site, Widelands::Building::OperationalStatus::kStandby);
 			for (const auto& queue : site.site->inputqueues()) {
 				game().send_player_set_input_max_fill(
 				   *site.site, queue->get_index(), queue->get_type(), 2);
@@ -4835,7 +4835,7 @@ bool DefaultAI::check_productionsites(const Time& gametime) {
 		     wood_policy_.at(site.bo->id) == WoodPolicy::kDismantleRangers) &&
 		    !site.site->is_stopped()) {
 
-			game().send_player_start_stop_building(*site.site);
+			game().send_player_start_stop_building(*site.site, Widelands::Building::OperationalStatus::kStandby);
 			return false;
 		}
 
@@ -4849,12 +4849,12 @@ bool DefaultAI::check_productionsites(const Time& gametime) {
 		// stop ranger if enough trees around regardless of policy
 		if (trees_nearby > 25) {
 			if (!site.site->is_stopped()) {
-				game().send_player_start_stop_building(*site.site);
+				game().send_player_start_stop_building(*site.site, Widelands::Building::OperationalStatus::kStandby);
 			}
 			// if not enough trees nearby, we can start them if required
 		} else if ((wood_policy_.at(site.bo->id) == WoodPolicy::kAllowRangers) &&
 		           site.site->is_stopped()) {
-			game().send_player_start_stop_building(*site.site);
+			game().send_player_start_stop_building(*site.site, Widelands::Building::OperationalStatus::kOperational);
 		}
 	}
 
@@ -7644,7 +7644,7 @@ void DefaultAI::set_inputs_to_max(const ProductionSiteObserver& site) {
 }
 void DefaultAI::stop_site(const ProductionSiteObserver& site) {
 	if (!site.site->is_stopped()) {
-		game().send_player_start_stop_building(*site.site);
+		game().send_player_start_stop_building(*site.site, Widelands::Building::OperationalStatus::kStandby);
 	}
 }
 

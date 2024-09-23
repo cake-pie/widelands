@@ -282,48 +282,61 @@ void DefaultAI::manage_shipyards() {
 			update_ships_target = false;
 		}
 
-		const bool stopped = sy_obs.site->is_stopped();
+		const auto opstat = sy_obs.site->get_operational_status();
 
-		if (basic_economy_established) {
-			// checking stocks
-			bool shipyard_stocked = true;
+		if (basic_economy_established && ports_count > 0) {
 			std::vector<Widelands::InputQueue*> const inputqueues = sy_obs.site->inputqueues();
-			for (Widelands::InputQueue* queue : inputqueues) {
-				if (queue->get_type() == Widelands::wwWARE) {
-					if (!stopped && sy_obs.site->get_priority(Widelands::wwWARE, queue->get_index()) !=
-					                   Widelands::WarePriority::kHigh) {
-						game().send_player_set_ware_priority(*sy_obs.site, Widelands::wwWARE,
-						                                     queue->get_index(),
-						                                     Widelands::WarePriority::kHigh);
-					}
-					if (!stopped && queue->get_max_fill() < queue->get_max_size()) {
+			// make preparations ahead of starting production
+			if (opstat == Widelands::Building::OperationalStatus::kMothballed) {
+				verb_log_dbg_time(game().get_gametime(), "AI %d: Preparing shipyard for production.", player_number());
+				game().send_player_start_stop_building(*sy_obs.site, Widelands::Building::OperationalStatus::kStandby);
+				for (Widelands::InputQueue* queue : inputqueues) {
+					if (queue->get_type() == Widelands::wwWARE) {
+						game().send_player_set_ware_priority(
+						   *sy_obs.site, Widelands::wwWARE, queue->get_index(), Widelands::WarePriority::kHigh);
 						game().send_player_set_input_max_fill(
 						   *sy_obs.site, queue->get_index(), Widelands::wwWARE, queue->get_max_size());
+					}
+				}
+				continue;
+			}
+			// checking stocks
+			const bool stopped = opstat != Widelands::Building::OperationalStatus::kOperational;
+			bool shipyard_stocked = true;
+			for (Widelands::InputQueue* queue : inputqueues) {
+				if (queue->get_type() == Widelands::wwWARE) {
+					if (queue->get_missing() > (stopped ? 0 : queue->get_max_size() / 3)) {
 						shipyard_stocked = false;
-					} else if (queue->get_missing() > (stopped ? 0 : queue->get_max_size() / 3)) {
-						shipyard_stocked = false;
+						continue;
 					}
 				}
 			}
-			if (ports_count > 0 && shipyard_stocked && stopped && sy_obs.site->can_start_working()) {
+			if (shipyard_stocked && stopped && sy_obs.site->can_start_working()) {
 				verb_log_dbg_time(game().get_gametime(), "AI %d: Starting shipyard.", player_number());
-				game().send_player_start_stop_building(*sy_obs.site);
-			} else if (!stopped && (!shipyard_stocked || ports_count == 0)) {
-				verb_log_dbg_time(game().get_gametime(), "AI %d: Stopping shipyard %s.",
-				                  player_number(),
-				                  (ports_count == 0) ? "without port" : "with poor supply");
-				game().send_player_start_stop_building(*sy_obs.site);
+				game().send_player_start_stop_building(*sy_obs.site, Widelands::Building::OperationalStatus::kOperational);
+			} else if (!stopped && !shipyard_stocked) {
+				verb_log_dbg_time(game().get_gametime(), "AI %d: Pausing shipyard with poor supply.", player_number());
+				game().send_player_start_stop_building(*sy_obs.site, Widelands::Building::OperationalStatus::kStandby);
 			}
-		} else {  // basic economy not established
-			verb_log_warn_time(
-			   game().get_gametime(), "AI %d: Shipyard found in weak economy!", player_number());
-			// give back all wares and stop
-			for (uint32_t k = 0; k < sy_obs.bo->inputs.size(); ++k) {
-				game().send_player_set_input_max_fill(
-				   *sy_obs.site, sy_obs.bo->inputs.at(k), Widelands::wwWARE, 0);
-			}
-			if (!stopped) {
-				game().send_player_start_stop_building(*sy_obs.site);
+		} else {  // basic economy not established, or no ports
+			if (opstat != Widelands::Building::OperationalStatus::kMothballed) {
+				if (ports_count == 0) {
+					verb_log_dbg_time(
+					   game().get_gametime(),
+					   "AI %d: Stopping shipyard without port.",
+					   player_number());
+				} else {
+					verb_log_warn_time(
+					   game().get_gametime(),
+					   "AI %d: Stopping shipyard found in weak economy!",
+					   player_number());
+				}
+				// give back all wares and stop
+				for (uint32_t k = 0; k < sy_obs.bo->inputs.size(); ++k) {
+					game().send_player_set_input_max_fill(
+					   *sy_obs.site, sy_obs.bo->inputs.at(k), Widelands::wwWARE, 0);
+				}
+				game().send_player_start_stop_building(*sy_obs.site, Widelands::Building::OperationalStatus::kMothballed);
 			}
 		}
 	}
