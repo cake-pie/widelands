@@ -22,6 +22,7 @@
 #include <memory>
 
 #include "logic/map_objects/immovable.h"
+#include "logic/map_objects/tribes/productionsite.h"
 #include "logic/map_objects/tribes/wareworker.h"
 
 namespace Widelands {
@@ -110,6 +111,12 @@ public:
 	 * Implementing classes should call update() at the end to remove the request.
 	 */
 	virtual void cleanup() = 0;
+
+	/**
+	 * Updates the request.
+	 * You must call this after every call to set_*().
+	 */
+	void update();
 
 	/**
 	 * Set the callback function that is called when an item has arrived.
@@ -214,6 +221,17 @@ protected:
 	}
 
 	/**
+	 * Is the the building containing this queue mothballed?
+	 * @return True if the building is mothballed, false if not (or cannot be mothballed)
+	 */
+	[[nodiscard]] bool is_building_mothballed() const {
+		if (upcast(ProductionSite const, ps, &owner_)) {
+			return ps->is_mothballed();
+		}
+		return false;
+	}
+
+	/**
 	 * Called when an item arrives at the owning building.
 	 * Most likely only one of \c i or \c w will be valid.
 	 * @param game The game the queue is part of.
@@ -224,12 +242,6 @@ protected:
 	 */
 	static void request_callback(
 	   Game& game, Request& r, DescriptionIndex index, Worker* worker, PlayerImmovable& target);
-
-	/**
-	 * Updates the request.
-	 * You must call this after every call to set_*().
-	 */
-	void update();
 
 	/**
 	 * Called when an item arrives at the owning building.

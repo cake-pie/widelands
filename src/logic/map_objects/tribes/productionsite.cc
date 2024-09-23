@@ -541,7 +541,7 @@ bool ProductionSite::init(EditorGameBase& egbase) {
 		for (uint32_t j = temp_wp.second; j != 0u; --j, ++wp) {
 			if (Worker* const worker = wp->worker.get(egbase)) {
 				worker->set_location(this);
-			} else {
+			} else if (!is_mothballed()) {
 				wp->worker_request = &request_worker(worker_index);
 			}
 		}
@@ -720,7 +720,7 @@ void ProductionSite::try_replace_worker(const Game* game,
 			*wp = wp_repl;
 			molog(owner().egbase().get_gametime(), "%s promoted\n", w_repl->descr().name().c_str());
 			// Request the now missing worker instead and loop again
-			wp_repl = WorkingPosition(&request_worker(worker_index_repl), nullptr);
+			wp_repl = WorkingPosition(is_mothballed() ? nullptr : &request_worker(worker_index_repl), nullptr);
 			try_replace_worker(game, worker_index_repl, &wp_repl);
 			return;
 		}
@@ -747,7 +747,7 @@ void ProductionSite::remove_worker(Worker& w) {
 	if (main_worker_ == wp_indexes.second) {
 		main_worker_ = -1;
 	}
-	*wp = WorkingPosition(&request_worker(worker_index), nullptr);
+	*wp = WorkingPosition(is_mothballed() ? nullptr : &request_worker(worker_index), nullptr);
 	Building::remove_worker(w);
 	// If the main worker was evicted, perhaps another worker is
 	// still there to perform basic tasks
@@ -798,7 +798,7 @@ void ProductionSite::request_worker_callback(
 				// Set new request for this slot
 				DescriptionIndex workerid = wp.worker_request->get_index();
 				delete wp.worker_request;
-				wp.worker_request = &psite.request_worker(workerid);
+				wp.worker_request = psite.is_mothballed() ? nullptr : &psite.request_worker(workerid);
 			}
 			break;
 		}
@@ -945,8 +945,43 @@ void ProductionSite::log_general_info(const EditorGameBase& egbase) const {
 }
 
 void ProductionSite::set_operational_status(Building::OperationalStatus const os) {
+	const bool was_mothballed = is_mothballed();
 	operational_status_ = os;
-	// TODO(cake-pie): implement mothballing effects
+
+	if (!was_mothballed && is_mothballed()) {
+		for (WorkingPosition& wp : working_positions_) {
+			if (wp.worker_request != nullptr) {
+				delete wp.worker_request;
+			}
+		}
+		for (InputQueue* q : input_queues_) {
+			if (q->get_type() == wwWORKER) {
+				// boot everyone out of worker queues
+				// also discards requests as q->update() is called as a side effect
+				Quantity temp = q->get_max_fill();
+				q->set_max_fill(0u);
+				q->set_max_fill(temp);
+			} else {
+				// discards requests; wares already present will
+				// need to be hauled out via get_building_work()
+				q->update();
+			}
+		}
+	} else if (was_mothballed && !is_mothballed()) {
+		auto wp = working_positions_.begin();
+		for (const auto& descr_wp : descr().working_positions()) {
+			for (uint32_t i = descr_wp.second; i != 0u; --i, ++wp) {
+				if (wp->worker == nullptr && wp->worker_request == nullptr) {
+					wp->worker_request = &request_worker(descr_wp.first);
+				}
+			}
+		}
+		for (InputQueue* q : input_queues_) {
+			// initiates requests
+			q->update();
+		}
+	}
+
 	get_economy(wwWARE)->rebalance_supply();
 	get_economy(wwWORKER)->rebalance_supply();
 	Notifications::publish(NoteBuilding(serial(), NoteBuilding::Action::kChanged));
@@ -1065,7 +1100,8 @@ bool ProductionSite::get_building_work(Game& game, Worker& worker, bool const su
 	// Drop all the wares that are too much out to the flag.
 	// Input-workers are coming out by themselves
 	for (InputQueue* queue : input_queues_) {
-		if (queue->get_type() == wwWARE && queue->get_filled() > queue->get_max_fill()) {
+		if (queue->get_type() == wwWARE &&
+		    (queue->get_filled() > queue->get_max_fill() || is_mothballed())) {
 			queue->set_filled(queue->get_filled() - 1);
 			const WareDescr& wd = *owner().tribe().get_ware_descr(queue->get_index());
 			WareInstance& ware = *new WareInstance(queue->get_index(), &wd);
@@ -1073,6 +1109,16 @@ bool ProductionSite::get_building_work(Game& game, Worker& worker, bool const su
 			worker.start_task_dropoff(game, ware);
 			return true;
 		}
+	}
+
+	// No remaining housekeeping tasks, mothballing complete -- release workers
+	if (is_mothballed()) {
+		for (WorkingPosition& wp : working_positions_) {
+			if (wp.worker != nullptr) {
+				game.send_player_evict_worker(*wp.worker.get(game));
+			}
+		}
+		return false;
 	}
 
 	// Check if all workers are there

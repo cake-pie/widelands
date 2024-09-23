@@ -354,6 +354,9 @@ public:
 	bool is_stopped() const {
 		return operational_status_ > Building::OperationalStatus::kOperational;
 	}
+	bool is_mothballed() const {
+		return operational_status_ == Building::OperationalStatus::kMothballed;
+	}
 	Building::OperationalStatus get_operational_status() const {
 		return operational_status_;
 	}

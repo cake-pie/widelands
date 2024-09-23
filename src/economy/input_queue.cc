@@ -49,7 +49,7 @@ void InputQueue::update() {
 	assert(max_fill_ <= max_size_);
 	assert(index_ != INVALID_INDEX);
 
-	if (get_filled() < max_fill_) {
+	if (get_filled() < max_fill_ && !is_building_mothballed()) {
 		if (!request_) {
 			request_.reset(new Request(owner_, index_, InputQueue::request_callback, type_));
 			request_->set_exact_match(true);  // Required for worker queues, ignored for wares anyway
