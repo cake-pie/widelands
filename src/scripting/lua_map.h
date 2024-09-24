@@ -1103,6 +1103,8 @@ public:
 	int set_setting_launch_expedition(lua_State*);
 	int get_setting_stopped(lua_State*);
 	int set_setting_stopped(lua_State*);
+	int get_setting_operational_status(lua_State* L);
+	int set_setting_operational_status(lua_State* L);
 
 	/*
 	 * Lua Methods
@@ -1229,6 +1231,8 @@ public:
 	int get_valid_inputs(lua_State* L);
 	int get_valid_workers(lua_State* L);
 	int get_is_stopped(lua_State* L);
+	int get_operational_status(lua_State* L);
+	int set_operational_status(lua_State* L);
 	int get_productivity(lua_State* L);
 
 	/*

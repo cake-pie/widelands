@@ -804,6 +804,31 @@ std::string priority_to_string(const Widelands::WarePriority& priority) {
 	NEVER_HERE();
 }
 
+Widelands::Building::OperationalStatus string_to_operational_status(const std::string& opstat) {
+	if (opstat == "operational") {
+		return Widelands::Building::OperationalStatus::kOperational;
+	}
+	if (opstat == "standby") {
+		return Widelands::Building::OperationalStatus::kStandby;
+	}
+	if (opstat == "mothballed") {
+		return Widelands::Building::OperationalStatus::kMothballed;
+	}
+	throw wexception("Invalid operational status '%s'", opstat.c_str());
+}
+std::string operational_status_to_string(const Widelands::Building::OperationalStatus& opstat) {
+	switch (opstat) {
+	case Widelands::Building::OperationalStatus::kOperational:
+		return "operational";
+	case Widelands::Building::OperationalStatus::kStandby:
+		return "standby";
+	case Widelands::Building::OperationalStatus::kMothballed:
+		return "mothballed";
+	default:
+		NEVER_HERE();
+	}
+}
+
 }  // namespace
 
 /*
@@ -5543,6 +5568,7 @@ const PropertyType<LuaConstructionSite> LuaConstructionSite::Properties[] = {
    PROP_RW(LuaConstructionSite, setting_soldier_preference),
    PROP_RW(LuaConstructionSite, setting_launch_expedition),
    PROP_RW(LuaConstructionSite, setting_stopped),
+   PROP_RW(LuaConstructionSite, setting_operational_status),
    {nullptr, nullptr, nullptr},
 };
 
@@ -5626,12 +5652,14 @@ int LuaConstructionSite::set_setting_launch_expedition(lua_State* L) {
 /* RST
    .. attribute:: setting_stopped
 
+      .. deprecated:: 1.3 Use :attr:`setting_operational_status` instead.
+
       (RW) Only valid for productionsites and trainingsites under construction. :const:`true` if
-      this building will be initially stopped after completion.
+      this building will be initially stopped (put into standby) after completion.
 */
 int LuaConstructionSite::get_setting_stopped(lua_State* L) {
 	if (upcast(Widelands::ProductionsiteSettings, ps, get(L, get_egbase(L))->get_settings())) {
-		lua_pushboolean(L, static_cast<int>(ps->stopped));
+		lua_pushboolean(L, ps->operational_status > Widelands::Building::OperationalStatus::kOperational);
 	} else {
 		lua_pushnil(L);
 	}
@@ -5642,7 +5670,39 @@ int LuaConstructionSite::set_setting_stopped(lua_State* L) {
 	if (ps == nullptr) {
 		report_error(L, "This constructionsite will not become a productionsite");
 	}
-	ps->stopped = luaL_checkboolean(L, -1);
+	ps->operational_status = luaL_checkboolean(L, -1) ?
+	   Widelands::Building::OperationalStatus::kStandby :
+	   Widelands::Building::OperationalStatus::kOperational;
+	return 0;
+}
+
+/* RST
+   .. attribute:: setting_operational_status
+
+      .. versionadded:: 1.3
+
+      (RW) Only valid for productionsites and trainingsites under construction. Indicates the
+      building's initial state upon completion: normal production/function (``"operational"``),
+      temporarily paused (``"standby"``) or long-term stoppage (``"mothballed"``).
+*/
+int LuaConstructionSite::get_setting_operational_status(lua_State* L) {
+	upcast(Widelands::ProductionsiteSettings, ps, get(L, get_egbase(L))->get_settings());
+	if (ps == nullptr) {
+		report_error(L, "This constructionsite will not become a productionsite");
+	}
+	lua_pushstring(L, operational_status_to_string(ps->operational_status));
+	return 1;
+}
+int LuaConstructionSite::set_setting_operational_status(lua_State* L) {
+	upcast(Widelands::ProductionsiteSettings, ps, get(L, get_egbase(L))->get_settings());
+	if (ps == nullptr) {
+		report_error(L, "This constructionsite will not become a productionsite");
+	}
+	try {
+		ps->operational_status = string_to_operational_status(luaL_checkstring(L, -1));
+	} catch (const WException& e) {
+		report_error(L, "%s", e.what());
+	}
 	return 0;
 }
 
@@ -6449,6 +6509,7 @@ const PropertyType<LuaProductionSite> LuaProductionSite::Properties[] = {
    PROP_RO(LuaProductionSite, valid_workers),
    PROP_RO(LuaProductionSite, valid_inputs),
    PROP_RO(LuaProductionSite, is_stopped),
+   PROP_RW(LuaProductionSite, operational_status),
    PROP_RO(LuaProductionSite, productivity),
    {nullptr, nullptr, nullptr},
 };
@@ -6489,7 +6550,8 @@ int LuaProductionSite::get_valid_workers(lua_State* L) {
 /* RST
    .. attribute:: is_stopped
 
-      (RO) Returns whether this productionsite is currently active or stopped
+      (RO) Returns whether this productionsite is currently active or stopped.
+      See also: :attr:`operational_status`.
 
       :returns: :const:`false` if the productionsite has been started,
          :const:`true` if it has been stopped.
@@ -6499,6 +6561,30 @@ int LuaProductionSite::get_is_stopped(lua_State* L) {
 	Widelands::ProductionSite* ps = get(L, get_egbase(L));
 	lua_pushboolean(L, static_cast<int>(ps->is_stopped()));
 	return 1;
+}
+
+/* RST
+   .. attribute:: operational_status
+
+      .. versionadded:: 1.3
+
+      (RW) The productionsite's current operational status, which varies between normal
+      production/function (``"operational"``), temporarily paused (``"standby"``) and
+      long-term stoppage (``"mothballed"``) states.
+*/
+int LuaProductionSite::get_operational_status(lua_State* L) {
+	Widelands::ProductionSite* ps = get(L, get_egbase(L));
+	lua_pushstring(L, operational_status_to_string(ps->get_operational_status()));
+	return 1;
+}
+int LuaProductionSite::set_operational_status(lua_State* L) {
+	Widelands::ProductionSite* ps = get(L, get_egbase(L));
+	try {
+		ps->set_operational_status(string_to_operational_status(luaL_checkstring(L, -1)));
+	} catch (const WException& e) {
+		report_error(L, "%s", e.what());
+	}
+	return 0;
 }
 
 /* RST
@@ -6608,13 +6694,19 @@ int LuaProductionSite::set_workers(lua_State* L) {
 /* RST
    .. method:: toggle_start_stop()
 
+      .. deprecated:: 1.3 Use :attr:`operational_status` instead.
+
       If :attr:`ProductionSite.is_stopped`, sends a command to start this productionsite.
-      Otherwise, sends a command to stop this productionsite.
+      Otherwise, sends a command to stop this productionsite (put into standby).
 */
 int LuaProductionSite::toggle_start_stop(lua_State* L) {
 	Widelands::Game& game = get_game(L);
 	Widelands::ProductionSite* ps = get(L, game);
-	game.send_player_start_stop_building(*ps);
+	if (ps->get_operational_status() == Widelands::Building::OperationalStatus::kOperational) {
+		ps->set_operational_status(Widelands::Building::OperationalStatus::kStandby);
+	} else {
+		ps->set_operational_status(Widelands::Building::OperationalStatus::kOperational);
+	}
 	return 1;
 }
 
