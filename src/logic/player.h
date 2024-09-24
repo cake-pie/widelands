@@ -450,7 +450,7 @@ public:
 	Building* build(Coords, DescriptionIndex, bool, FormerBuildings&);
 	void bulldoze(PlayerImmovable&, bool recurse = false);
 	void flagaction(Flag&, FlagJob::Type);
-	void start_stop_building(PlayerImmovable&);
+	void start_stop_building(PlayerImmovable&, Building::OperationalStatus);
 	void start_or_cancel_expedition(const Warehouse&);
 	void enhance_building(Building*, DescriptionIndex index_of_new_building, bool keep_wares);
 	void dismantle_building(Building*, bool keep_wares);

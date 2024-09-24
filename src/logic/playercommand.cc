@@ -569,33 +569,39 @@ void CmdFlagAction::write(FileWrite& fw, EditorGameBase& egbase, MapObjectSaver&
 
 CmdStartStopBuilding::CmdStartStopBuilding(StreamRead& des)
    : PlayerCommand(Time(0), des.unsigned_8()) {
-	serial = des.unsigned_32();
+	serial_ = des.unsigned_32();
+	opstat_ = static_cast<Building::OperationalStatus>(des.unsigned_8());
 }
 
 void CmdStartStopBuilding::execute(Game& game) {
-	MapObject* mo = game.objects().get_object(serial);
+	MapObject* mo = game.objects().get_object(serial_);
 	if (upcast(ConstructionSite, cs, mo)) {
 		if (upcast(ProductionsiteSettings, s, cs->get_settings())) {
-			s->stopped = !s->stopped;
+			s->operational_status = opstat_;
 		}
 	} else if (upcast(Building, building, mo)) {
-		game.get_player(sender())->start_stop_building(*building);
+		game.get_player(sender())->start_stop_building(*building, opstat_);
 	}
 }
 
 void CmdStartStopBuilding::serialize(StreamWrite& ser) {
 	write_id_and_sender(ser);
-	ser.unsigned_32(serial);
+	ser.unsigned_32(serial_);
+	ser.unsigned_8(static_cast<uint8_t>(opstat_));
 }
 
-constexpr uint16_t kCurrentPacketVersionCmdStartStopBuilding = 1;
+/* Changelog:
+ * Version 1 → 2 (v1.3): added ternary operational status
+ */
+constexpr uint16_t kCurrentPacketVersionCmdStartStopBuilding = 2;
 
 void CmdStartStopBuilding::read(FileRead& fr, EditorGameBase& egbase, MapObjectLoader& mol) {
 	try {
 		const uint16_t packet_version = fr.unsigned_16();
 		if (packet_version == kCurrentPacketVersionCmdStartStopBuilding) {
 			PlayerCommand::read(fr, egbase, mol);
-			serial = get_object_serial_or_zero<Building>(fr.unsigned_32(), mol);
+			serial_ = get_object_serial_or_zero<Building>(fr.unsigned_32(), mol);
+			opstat_ = static_cast<Building::OperationalStatus>(fr.unsigned_8());
 		} else {
 			throw UnhandledVersionError(
 			   "CmdStartStopBuilding", packet_version, kCurrentPacketVersionCmdStartStopBuilding);
@@ -611,7 +617,8 @@ void CmdStartStopBuilding::write(FileWrite& fw, EditorGameBase& egbase, MapObjec
 	PlayerCommand::write(fw, egbase, mos);
 
 	// Now serial
-	fw.unsigned_32(mos.get_object_file_index_or_zero(egbase.objects().get_object(serial)));
+	fw.unsigned_32(mos.get_object_file_index_or_zero(egbase.objects().get_object(serial_)));
+	fw.unsigned_8(static_cast<uint8_t>(opstat_));
 }
 
 /*** Cmd_ToggleInfiniteProduction ***/

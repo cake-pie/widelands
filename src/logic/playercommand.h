@@ -214,8 +214,8 @@ private:
 
 struct CmdStartStopBuilding : public PlayerCommand {
 	CmdStartStopBuilding() = default;  // For savegame loading
-	CmdStartStopBuilding(const Time& t, const PlayerNumber p, Building& b)
-	   : PlayerCommand(t, p), serial(b.serial()) {
+	CmdStartStopBuilding(const Time& t, const PlayerNumber p, Building& b, Building::OperationalStatus os)
+	   : PlayerCommand(t, p), serial_(b.serial()), opstat_(os) {
 	}
 
 	void write(FileWrite&, EditorGameBase&, MapObjectSaver&) override;
@@ -231,7 +231,8 @@ struct CmdStartStopBuilding : public PlayerCommand {
 	void serialize(StreamWrite&) override;
 
 private:
-	Serial serial{0U};
+	Serial serial_{0U};
+	Building::OperationalStatus opstat_{Building::OperationalStatus::kOperational};
 };
 
 struct CmdToggleInfiniteProduction : public PlayerCommand {

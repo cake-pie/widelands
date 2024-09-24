@@ -57,7 +57,7 @@
 namespace Widelands {
 
 // Overall package version
-constexpr uint16_t kCurrentPacketVersion = 9;
+constexpr uint16_t kCurrentPacketVersion = 10;
 
 // Building type package versions
 constexpr uint16_t kCurrentPacketVersionDismantlesite = 1;
@@ -69,6 +69,7 @@ constexpr uint16_t kCurrentPacketVersionTrainingsite = 7;
 
 /* Packet versions changelog:
  * Overall: v1.1 = 9
+ * - 9 -> 10: stopped -> operational_status
  * Dismantlesite: v1.1 = 1
  * Constructionsite: v1.1 = 5
  * PFBuilding: v1.1 = 2
@@ -192,7 +193,7 @@ void MapBuildingdataPacket::read(FileSystem& fs,
 						                    building.descr().name().c_str(), building.serial());
 					}
 
-					if (fr.unsigned_8() != 0u) {
+					if (uint8_t const opstat = fr.unsigned_8(); opstat != 0) {
 						if (upcast(ProductionSite, productionsite, &building)) {
 							if (building.descr().type() == MapObjectType::MILITARYSITE) {
 								log_warn("Found a stopped %s at (%i, %i) in the "
@@ -201,7 +202,8 @@ void MapBuildingdataPacket::read(FileSystem& fs,
 								         building.descr().name().c_str(), building.get_position().x,
 								         building.get_position().y);
 							} else {
-								productionsite->set_stopped(true);
+								productionsite->set_operational_status(
+								   static_cast<Building::OperationalStatus>(opstat));
 							}
 						} else {
 							log_warn("Found a stopped %s at (%i, %i) in the "
@@ -1074,11 +1076,11 @@ void MapBuildingdataPacket::write(FileSystem& fs, EditorGameBase& egbase, MapObj
 				fw.unsigned_8(0);
 			}
 			{
-				bool is_stopped = false;
+				uint8_t opstat = 0u;
 				if (upcast(ProductionSite const, productionsite, building)) {
-					is_stopped = productionsite->is_stopped();
+					opstat = static_cast<uint8_t>(productionsite->get_operational_status());
 				}
-				fw.unsigned_8(static_cast<uint8_t>(is_stopped));
+				fw.unsigned_8(opstat);
 			}
 			fw.unsigned_8(static_cast<uint8_t>(building->is_destruction_blocked_));
 

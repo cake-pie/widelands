@@ -973,10 +973,10 @@ void Player::bulldoze(PlayerImmovable& imm, bool const recurse) {
 	}
 }
 
-void Player::start_stop_building(PlayerImmovable& imm) {
+void Player::start_stop_building(PlayerImmovable& imm, Building::OperationalStatus opstat) {
 	if (imm.get_owner() == this) {
 		if (upcast(ProductionSite, productionsite, &imm)) {
-			productionsite->set_stopped(!productionsite->is_stopped());
+			productionsite->set_operational_status(opstat);
 		}
 	}
 }

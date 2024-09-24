@@ -1047,9 +1047,9 @@ void Game::send_player_flagaction(Flag& flag, FlagJob::Type t) {
 	send_player_command(new CmdFlagAction(get_gametime(), flag.owner().player_number(), flag, t));
 }
 
-void Game::send_player_start_stop_building(Building& building) {
+void Game::send_player_start_stop_building(Building& building, Building::OperationalStatus opstat) {
 	send_player_command(
-	   new CmdStartStopBuilding(get_gametime(), building.owner().player_number(), building));
+	   new CmdStartStopBuilding(get_gametime(), building.owner().player_number(), building, opstat));
 }
 
 void Game::send_player_toggle_infinite_production(Building& building) {
