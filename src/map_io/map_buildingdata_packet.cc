@@ -98,6 +98,7 @@ void MapBuildingdataPacket::read(FileSystem& fs,
 
 	try {
 		uint16_t const packet_version = fr.unsigned_16();
+		// savegame compatibility for v1.2 - no special handling needed for stopped -> operational_status
 		if (packet_version <= kCurrentPacketVersion && packet_version >= 9) {
 			while (!fr.end_of_file()) {
 				Serial const serial = fr.unsigned_32();

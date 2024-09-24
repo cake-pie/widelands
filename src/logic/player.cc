@@ -976,7 +976,16 @@ void Player::bulldoze(PlayerImmovable& imm, bool const recurse) {
 void Player::start_stop_building(PlayerImmovable& imm, Building::OperationalStatus opstat) {
 	if (imm.get_owner() == this) {
 		if (upcast(ProductionSite, productionsite, &imm)) {
-			productionsite->set_operational_status(opstat);
+			if (opstat == static_cast<Building::OperationalStatus>(UINT8_MAX)) {
+				// savegame compatibility for v1.2
+				if (productionsite->get_operational_status() == Building::OperationalStatus::kOperational) {
+					productionsite->set_operational_status(Building::OperationalStatus::kStandby);
+				} else {
+					productionsite->set_operational_status(Building::OperationalStatus::kOperational);
+				}
+			} else {
+				productionsite->set_operational_status(opstat);
+			}
 		}
 	}
 }
