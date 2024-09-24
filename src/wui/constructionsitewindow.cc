@@ -228,21 +228,37 @@ void ConstructionSiteWindow::build_settings_tab(Widelands::ConstructionSite* con
 				}
 			});
 		}
-		cs_stopped_ = new UI::Checkbox(settings_box.get(), UI::PanelStyle::kWui, "setting_stop",
-		                               Vector2i::zero(), _("Stopped"),
-		                               _("Stop this building’s work after completion"));
-		cs_stopped_->clickedto.connect([this, ps](bool stop) {
-			if (stop != ps->stopped) {
+		cs_opstat_ = new UI::Dropdown<Widelands::Building::OperationalStatus>(
+		   settings_box.get(), "opstat", 0, 0, 150, 5, 24, "", UI::DropdownType::kTextual,
+		   UI::PanelStyle::kWui, UI::ButtonStyle::kWuiMenu);
+		cs_opstat_->add(_("Operational"), Widelands::Building::OperationalStatus::kOperational,
+		                nullptr, ps->operational_status == Widelands::Building::OperationalStatus::kOperational,
+		                /** TRANSLATORS: Tooltip of option in operational status dropdown for production sites under construction. */
+		                _("This building will start normal production after completion."));
+		cs_opstat_->add(_("On standby"), Widelands::Building::OperationalStatus::kStandby,
+		                nullptr, ps->operational_status == Widelands::Building::OperationalStatus::kStandby,
+		                /** TRANSLATORS: Tooltip of option in operational status dropdown for production sites under construction. */
+		                _("This building will request workers and input wares after completion, but production will not start."));
+		cs_opstat_->add(_("Mothballed"), Widelands::Building::OperationalStatus::kMothballed,
+		                nullptr, ps->operational_status == Widelands::Building::OperationalStatus::kMothballed,
+		                /** TRANSLATORS: Tooltip of option in operational status dropdown for production sites under construction. */
+		                _("This building will not start production after completion; workers and input wares will not be requested."));
+		/** TRANSLATORS: Tooltip of operational status dropdown for production sites under construction. */
+		cs_opstat_->set_tooltip(_("Operational status of this building upon completion"));
+		cs_opstat_->selected.connect([this, ps]() {
+			if (cs_opstat_->get_selected() != ps->operational_status) {
 				if (game_ != nullptr) {
-					game_->send_player_start_stop_building(*construction_site_.get(ibase()->egbase()));
+					game_->send_player_start_stop_building(
+					   *construction_site_.get(ibase()->egbase()),
+					   cs_opstat_->get_selected());
 				} else {
 					NEVER_HERE();  // TODO(Nordfriese / Scenario Editor): implement
 				}
 			}
 		});
-		settings_box->add(cs_stopped_, UI::Box::Resizing::kAlign, UI::Align::kCenter);
+		settings_box->add(cs_opstat_, UI::Box::Resizing::kAlign, UI::Align::kCenter);
 		settings_box->add_space(6);
-		cs_stopped_->set_enabled(can_act);
+		cs_opstat_->set_enabled(can_act);
 	} break;
 	case Widelands::MapObjectType::WAREHOUSE: {
 		upcast(Widelands::WarehouseSettings, ws, construction_site->get_settings());
@@ -449,8 +465,11 @@ void ConstructionSiteWindow::think() {
 	// InputQueueDisplay and FakeWaresDisplay update themselves – we need to refresh the other
 	// settings
 	if (upcast(Widelands::ProductionsiteSettings, ps, construction_site->get_settings())) {
-		assert(cs_stopped_ != nullptr);
-		cs_stopped_->set_state(ps->stopped);
+		assert(cs_opstat_ != nullptr);
+		if (cs_opstat_->get_selected() != ps->operational_status &&
+		    !cs_opstat_->is_expanded()) {  // don't fight for control with user
+			cs_opstat_->select(ps->operational_status);
+		}
 	}
 	if (upcast(Widelands::TrainingsiteSettings, ts, construction_site->get_settings())) {
 		assert(cs_soldier_capacity_ != nullptr);

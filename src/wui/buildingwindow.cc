@@ -276,18 +276,38 @@ void BuildingWindow::create_capsbuttons(UI::Box* capsbuttons, Widelands::Buildin
 				      });
 			}
 		} else if (upcast(const Widelands::ProductionSite, productionsite, building)) {
-			const bool is_stopped = productionsite->is_stopped();
-			UI::Button* stopbtn = new UI::Button(
-			   capsbuttons, is_stopped ? "continue" : "stop", 0, 0, 34, 34, UI::ButtonStyle::kWuiMenu,
-			   g_image_cache->get(
-			      (is_stopped ? "images/ui_basic/continue.png" : "images/ui_basic/stop.png")),
-			   is_stopped ?
-               /** TRANSLATORS: Stop/Continue toggle button for production sites. */
-               _("Continue") :
-               /** TRANSLATORS: Stop/Continue toggle button for production sites. */
-               _("Stop"));
-			stopbtn->sigclicked.connect([this]() { act_start_stop(); });
-			capsbuttons->add(stopbtn);
+			const Widelands::Building::OperationalStatus opstat =  productionsite->get_operational_status();
+			opstat_dd_ = new UI::Dropdown<Widelands::Building::OperationalStatus>(
+			   capsbuttons, "opstat", 0, 0, 34, 5, 34, "", UI::DropdownType::kPictorial,
+			   UI::PanelStyle::kWui, UI::ButtonStyle::kWuiMenu);
+			opstat_dd_->add(
+			   /** TRANSLATORS: Option in operational status dropdown for production sites. */
+			   _("Operational"), Widelands::Building::OperationalStatus::kOperational,
+			   g_image_cache->get("images/ui_basic/continue.png"),
+			   opstat == Widelands::Building::OperationalStatus::kOperational,
+			   /** TRANSLATORS: Tooltip of option in operational status dropdown for production sites. */
+			   _("Continue (or resume) normal production."));
+			opstat_dd_->add(
+			   /** TRANSLATORS: Option in operational status dropdown for production sites. */
+			   _("On standby"), Widelands::Building::OperationalStatus::kStandby,
+			   g_image_cache->get("images/ui_basic/pause.png"),
+			   opstat == Widelands::Building::OperationalStatus::kStandby,
+			   /** TRANSLATORS: Tooltip of option in operational status dropdown for production sites. */
+			   _("Pause production temporarily. Workers and input wares will remain in place."));
+			opstat_dd_->add(
+			   /** TRANSLATORS: Option in operational status dropdown for production sites. */
+			   _("Mothballed"), Widelands::Building::OperationalStatus::kMothballed,
+			   g_image_cache->get("images/ui_basic/stop.png"),
+			   opstat == Widelands::Building::OperationalStatus::kMothballed,
+			   /** TRANSLATORS: Tooltip of option in operational status dropdown for production sites. */
+			   _("Stop production for the long term. Allows workers and input wares to be reallocated elsewhere."));
+			update_opstat_dd_tooltip(opstat);
+			opstat_dd_->selected.connect([this]() {
+				Widelands::Building::OperationalStatus os = opstat_dd_->get_selected();
+				update_opstat_dd_tooltip(os);
+				act_start_stop(os);
+			});
+			capsbuttons->add(opstat_dd_);
 
 			if (productionsite->descr().is_infinite_production_useful()) {
 				UI::Button* infbtn = new UI::Button(
@@ -516,7 +536,7 @@ void BuildingWindow::act_dismantle() {
 Callback for starting / stoping the production site request
 ===============
 */
-void BuildingWindow::act_start_stop() {
+void BuildingWindow::act_start_stop(Widelands::Building::OperationalStatus opstat) {
 	Widelands::Building* building = building_.get(parent_->egbase());
 	if (building == nullptr) {
 		return;
@@ -524,7 +544,7 @@ void BuildingWindow::act_start_stop() {
 
 	if (building->descr().type() >= Widelands::MapObjectType::PRODUCTIONSITE) {
 		if (game_ != nullptr) {
-			game_->send_player_start_stop_building(*building);
+			game_->send_player_start_stop_building(*building, opstat);
 		} else {
 			NEVER_HERE();  // TODO(Nordfriese / Scenario Editor): implement
 		}
@@ -736,6 +756,25 @@ void BuildingWindow::update_expedition_button(bool expedition_was_canceled) {
 		expeditionbtn_->set_pic(g_image_cache->get("images/wui/buildings/cancel_expedition.png"));
 	}
 	expeditionbtn_->set_enabled(true);
+}
+
+void BuildingWindow::update_opstat_dd_tooltip(Widelands::Building::OperationalStatus opstat) {
+	std::string opstat_str;
+	switch (opstat) {
+	   case Widelands::Building::OperationalStatus::kOperational:
+		opstat_str = _("Operational");
+		break;
+	   case Widelands::Building::OperationalStatus::kStandby:
+		opstat_str = _("On standby");
+		break;
+	   case Widelands::Building::OperationalStatus::kMothballed:
+		opstat_str = _("Mothballed");
+		break;
+	   default:
+		NEVER_HERE();
+	}
+	/** TRANSLATORS: Current value of operational status dropdown for production sites. */
+	opstat_dd_->set_tooltip(format(_("Operational status: %1%"), opstat_str));
 }
 
 constexpr uint16_t kCurrentPacketVersion = 2;
