@@ -392,10 +392,18 @@ void ProductionSite::update_statistics_string(std::string* s) {
 		return;
 	}
 
-	if (is_stopped_) {
+	switch (operational_status_) {
+	    case Building::OperationalStatus::kStandby:
 		*s = StyleManager::color_tag(
-		   _("(stopped)"), g_style_manager->building_statistics_style().neutral_color());
+		   _("(on standby)"), g_style_manager->building_statistics_style().neutral_color());
 		return;
+	    case Building::OperationalStatus::kMothballed:
+		*s = StyleManager::color_tag(
+		   _("(mothballed)"), g_style_manager->building_statistics_style().neutral_color());
+		return;
+	    case Building::OperationalStatus::kOperational:
+		// intentionally blank
+		break;
 	}
 	*s = statistics_string_on_changed_statistics_;
 }
@@ -905,7 +913,7 @@ void ProductionSite::program_act(Game& game) {
 	// 'Stop' of building is considered only when starting
 	// new productions cycle. Otherwise it can lead to consumption
 	// of input wares without producing anything
-	if (is_stopped_ && state.ip == 0 &&
+	if (is_stopped() && state.ip == 0 &&
 	    ((state.flags & State::StateFlags::kStateFlagIgnoreStopped) == 0u)) {
 		program_end(game, ProgramResult::kFailed);
 		program_timer_ = true;
@@ -932,12 +940,13 @@ bool ProductionSite::fetch_from_flag(Game& game) {
 void ProductionSite::log_general_info(const EditorGameBase& egbase) const {
 	Building::log_general_info(egbase);
 
-	molog(egbase.get_gametime(), "is_stopped: %u\n", static_cast<int>(is_stopped_));
+	molog(egbase.get_gametime(), "operational_status: %u\n", static_cast<uint8_t>(operational_status_));
 	molog(egbase.get_gametime(), "main_worker: %i\n", main_worker_);
 }
 
-void ProductionSite::set_stopped(bool const stopped) {
-	is_stopped_ = stopped;
+void ProductionSite::set_operational_status(Building::OperationalStatus const opstat) {
+	operational_status_ = opstat;
+	// TODO(cake-pie): implement mothballing effects
 	get_economy(wwWARE)->rebalance_supply();
 	get_economy(wwWORKER)->rebalance_supply();
 	Notifications::publish(NoteBuilding(serial(), NoteBuilding::Action::kChanged));
@@ -1301,7 +1310,7 @@ void ProductionSite::remove_fleet_interface(EditorGameBase& /*egbase*/,
 std::unique_ptr<const BuildingSettings> ProductionSite::create_building_settings() const {
 	std::unique_ptr<ProductionsiteSettings> settings(
 	   new ProductionsiteSettings(descr(), owner().tribe()));
-	settings->stopped = is_stopped_;
+	settings->operational_status = operational_status_;
 	for (auto& pair : settings->ware_queues) {
 		pair.second.priority = get_priority(wwWARE, pair.first);
 		for (const auto& queue : input_queues_) {

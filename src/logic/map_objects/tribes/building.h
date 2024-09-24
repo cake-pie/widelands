@@ -23,10 +23,10 @@
 
 #include "ai/ai_hints.h"
 #include "base/macros.h"
+#include "economy/ware_priority.h"
 #include "logic/map_objects/buildcost.h"
 #include "logic/map_objects/immovable.h"
 #include "logic/map_objects/tribes/attack_target.h"
-#include "logic/map_objects/tribes/building_settings.h"
 #include "logic/map_objects/tribes/soldiercontrol.h"
 #include "logic/map_objects/tribes/wareworker.h"
 #include "logic/map_objects/tribes/workarea_info.h"
@@ -35,6 +35,7 @@
 
 namespace Widelands {
 
+struct BuildingSettings;
 class InputQueue;
 class Request;
 
@@ -252,6 +253,9 @@ public:
 		PCap_Enhancable = 1 << 2,  // can be enhanced to something
 	};
 
+	// Note: widely cast to/from underlying uint8_t for saveload / serialization
+	enum class OperationalStatus : uint8_t { kOperational, kStandby, kMothballed };
+
 	enum class InfoStringFormat { kCensus, kStatistics, kTooltip };
 
 	explicit Building(const BuildingDescr&);
@@ -340,9 +344,7 @@ public:
 	void add_worker(Worker&) override;
 	void remove_worker(Worker&) override;
 
-	virtual std::unique_ptr<const BuildingSettings> create_building_settings() const {
-		return nullptr;
-	}
+	virtual std::unique_ptr<const BuildingSettings> create_building_settings() const;
 
 	// AttackTarget object associated with this building. If the building can
 	// never be attacked (for example productionsites) this will be nullptr.

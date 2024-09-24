@@ -816,6 +816,10 @@ void Building::notify_worker_evicted(Game& game, Worker& /* worker */) {
 	worker_evicted_ = game.get_gametime();
 }
 
+std::unique_ptr<const BuildingSettings> Building::create_building_settings() const {
+	return nullptr;
+}
+
 void Building::set_attack_target(AttackTarget* new_attack_target) {
 	assert(attack_target_ == nullptr);
 	attack_target_ = new_attack_target;

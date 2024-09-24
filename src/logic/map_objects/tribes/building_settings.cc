@@ -79,7 +79,7 @@ inline uint32_t new_desired_capacity(uint32_t old_max, uint32_t old_des, uint32_
 void ProductionsiteSettings::apply(const BuildingSettings& bs) {
 	BuildingSettings::apply(bs);
 	if (upcast(const ProductionsiteSettings, s, &bs)) {
-		stopped = s->stopped;
+		operational_status = s->operational_status;
 		for (auto& pair : ware_queues) {
 			for (const auto& other : s->ware_queues) {
 				if (pair.first == other.first) {
@@ -148,13 +148,14 @@ void WarehouseSettings::apply(const BuildingSettings& bs) {
  * Global: 2: v1.1
  * Militarysite: 1: v1.1
  * Productionsite: 2: v1.1
+ *   - 3: v1.3 stopped -> operational_status
  * Trainingsite: 1: v1.1
  * Warehouse: 2: v1.1
  *   - 3: Added soldier preference and capacity
  */
 constexpr uint8_t kCurrentPacketVersion = 2;
 constexpr uint8_t kCurrentPacketVersionMilitarysite = 1;
-constexpr uint8_t kCurrentPacketVersionProductionsite = 2;
+constexpr uint8_t kCurrentPacketVersionProductionsite = 3;
 constexpr uint8_t kCurrentPacketVersionTrainingsite = 1;
 constexpr uint8_t kCurrentPacketVersionWarehouse = 3;
 
@@ -239,7 +240,7 @@ void ProductionsiteSettings::read(const Game& game, FileRead& fr) {
 	try {
 		const uint8_t packet_version = fr.unsigned_8();
 		if (packet_version == kCurrentPacketVersionProductionsite) {
-			stopped = (fr.unsigned_8() != 0u);
+			operational_status = static_cast<Building::OperationalStatus>(fr.unsigned_8());
 			const uint32_t nr_wares = fr.unsigned_32();
 			const uint32_t nr_workers = fr.unsigned_32();
 			for (uint32_t i = 0; i < nr_wares; ++i) {
@@ -283,7 +284,7 @@ void ProductionsiteSettings::save(const Game& game, FileWrite& fw) const {
 	BuildingSettings::save(game, fw);
 	fw.unsigned_8(kCurrentPacketVersionProductionsite);
 
-	fw.unsigned_8(stopped ? 1 : 0);
+	fw.unsigned_8(static_cast<uint8_t>(operational_status));
 	fw.unsigned_32(ware_queues.size());
 	fw.unsigned_32(worker_queues.size());
 	for (const auto& pair : ware_queues) {

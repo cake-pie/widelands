@@ -352,9 +352,12 @@ public:
 	void log_general_info(const EditorGameBase&) const override;
 
 	bool is_stopped() const {
-		return is_stopped_;
+		return operational_status_ > Building::OperationalStatus::kOperational;
 	}
-	void set_stopped(bool);
+	Building::OperationalStatus get_operational_status() const {
+		return operational_status_;
+	}
+	void set_operational_status(Building::OperationalStatus);
 
 	struct WorkingPosition {
 		explicit WorkingPosition(Request* const wr = nullptr, Worker* const w = nullptr)
@@ -543,7 +546,7 @@ protected:
 	// 0-100)
 	uint32_t actual_percent_{0U};  // basically this is percent * 10 to avoid floats
 	Time last_program_end_time{0U};
-	bool is_stopped_{false};
+	Building::OperationalStatus operational_status_{Building::OperationalStatus::kOperational};
 	bool infinite_production_{false};
 	std::string default_anim_{"idle"};  // normally "idle", "empty", if empty mine.
 
