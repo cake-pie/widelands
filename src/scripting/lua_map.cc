@@ -1099,9 +1099,9 @@ Common functions
 Some map objects share the same functions and attributes:
 
    * :ref:`has_wares`
+   * :ref:`has_inputs`
    * :ref:`has_workers`
    * :ref:`has_soldiers`
-   * :ref:`has_inputs`
 */
 
 /* RST
@@ -1179,8 +1179,11 @@ Common properties for objects requiring production inputs
 
 Supported at the time of this writing by
 :class:`~wl.map.ProductionSite` and :class:`~wl.map.TrainingSite`.
-These functions allows to set workers as inputs. These workers
-are consumed by the production or trainings programs. To access
+Partially supported by `~wl.map.ConstructionSite`, which offers a
+subset of these functions.
+
+These functions are for handling workers as inputs. These workers
+are consumed by the production or training programs. To access
 workers that do the work, see: :ref:`has_workers`.
 */
 
@@ -1213,7 +1216,7 @@ workers that do the work, see: :ref:`has_workers`.
 .. method:: set_inputs(which[, amount])
 
    Sets the wares/workers available in this location which will
-   be consumed by the production/training programm. Either takes two arguments,
+   be consumed by the production/training program. Either takes two arguments,
    a ware/worker name and an amount to set it to. Or it takes a :class:`table` of
    ``{ware/worker_name=amount}`` pairs. Wares are created and added to an
    economy out of thin air.
